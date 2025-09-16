@@ -3,6 +3,7 @@
   "displayName": "Next.js Server Actions Highlighter",
   "description": "Visualize Next.js Server Actions in VS Code: highlight definitions and call sites with inline cues.",
   "version": "0.0.1",
+  "license": "MIT",
   "publisher": "makotot",
   "repository": {
     "type": "git",
