@@ -1,0 +1,108 @@
+{
+  "name": "nextjs-server-actions-highlighter",
+  "displayName": "Next.js Server Actions Highlighter",
+  "description": "Visualize Next.js Server Actions in VS Code: highlight definitions and call sites with inline cues.",
+  "version": "0.0.1",
+  "publisher": "makotot",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/makotot/nextjs-server-actions-highlighter.git"
+  },
+  "homepage": "https://github.com/makotot/nextjs-server-actions-highlighter#readme",
+  "bugs": {
+    "url": "https://github.com/makotot/nextjs-server-actions-highlighter/issues"
+  },
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "nextjs",
+    "next.js",
+    "server actions",
+    "react server components",
+    "rsc",
+    "typescript",
+    "javascript",
+    "visualizer",
+    "vscode"
+  ],
+  "activationEvents": [
+    "onLanguage:typescript",
+    "onLanguage:typescriptreact"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Next.js Server Actions Highlighter",
+      "properties": {
+        "nextjs-server-actions-highlighter.highlight.definition.tintLight": {
+          "type": "string",
+          "default": "rgba(138, 99, 255, 0.14)",
+          "description": "Background tint for server action bodies (light themes). Blue‑violet tint."
+        },
+        "nextjs-server-actions-highlighter.highlight.definition.tintDark": {
+          "type": "string",
+          "default": "rgba(138, 99, 255, 0.18)",
+          "description": "Background tint for server action bodies (dark themes). Blue‑violet tint."
+        },
+        "nextjs-server-actions-highlighter.highlight.definition.tintHighContrast": {
+          "type": "string",
+          "default": "rgba(138, 99, 255, 0.22)",
+          "description": "Background tint for server action bodies (high contrast). Blue‑violet tint."
+        },
+        "nextjs-server-actions-highlighter.highlight.call.tintLight": {
+          "type": "string",
+          "default": "rgba(118, 129, 255, 0.14)",
+          "description": "Background tint for call sites (light themes). Blue‑violet tint."
+        },
+        "nextjs-server-actions-highlighter.highlight.call.tintDark": {
+          "type": "string",
+          "default": "rgba(118, 129, 255, 0.18)",
+          "description": "Background tint for call sites (dark themes). Blue‑violet tint."
+        },
+        "nextjs-server-actions-highlighter.highlight.call.tintHighContrast": {
+          "type": "string",
+          "default": "rgba(118, 129, 255, 0.22)",
+          "description": "Background tint for call sites (high contrast). Blue‑violet tint."
+        },
+        "nextjs-server-actions-highlighter.highlight.call.underlineColorLight": {
+          "type": "string",
+          "default": "rgba(118, 129, 255, 0.85)",
+          "description": "Underline color for call sites (light themes)."
+        },
+        "nextjs-server-actions-highlighter.highlight.call.underlineColorDark": {
+          "type": "string",
+          "default": "rgba(118, 129, 255, 0.85)",
+          "description": "Underline color for call sites (dark themes)."
+        },
+        "nextjs-server-actions-highlighter.highlight.call.underlineColorHighContrast": {
+          "type": "string",
+          "default": "rgba(118, 129, 255, 0.9)",
+          "description": "Underline color for call sites (high contrast)."
+        }
+      }
+    },
+    "commands": []
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "lint": "eslint src --ext ts",
+    "test": "vitest run",
+    "test:unit:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "24",
+    "@types/vscode": "1.104.0",
+    "@typescript-eslint/eslint-plugin": "6.9.0",
+    "@typescript-eslint/parser": "6.9.0",
+    "eslint": "8.0.0",
+    "vitest": "3.2.4"
+  },
+  "dependencies": {
+    "typescript": "5.9.2"
+  }
+}
