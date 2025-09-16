@@ -1,6 +1,11 @@
 # Next.js Server Actions Highlighter (VS Code Extension)
 
-A VS Code extension that visualizes the “definitions” and “call sites” of Server Actions (`'use server'`) to help you understand them quickly in the editor.
+> A VS Code extension that visualizes the “definitions” and “call sites” of Server Actions (`'use server'`) to help you understand them quickly in the editor.
+
+<img src="./assets/screenshot.png" alt="Screenshot" width="600" />
+
+## Motivation
+Server Actions are transformed into framework‑managed endpoints (POST), which makes the network boundary implicit and hard to see in code. By visualizing these definitions and call sites directly in the editor, this extension aims to improve readability and reduce review friction.
 
 ## Features
 - Highlight definitions (blue‑purple line background)
@@ -72,3 +77,6 @@ You can tweak the background intensity and theme colors.
 
 ## License / Contributions
 - Issues/PRs welcome. Proposals for UI/colors and unsupported patterns (e.g., namespace import/element access) are appreciated.
+
+## Related
+- Next.js Component Boundary Visualizer: https://github.com/makotot/vscode-nextjs-component-boundary-visualizer — A VS Code extension that visualizes component execution environments (client/server) via the 'use client' directive.
