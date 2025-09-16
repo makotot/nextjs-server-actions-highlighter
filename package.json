@@ -13,7 +13,7 @@
     "url": "https://github.com/makotot/nextjs-server-actions-highlighter/issues"
   },
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.104.0"
   },
   "categories": [
     "Other"
