@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { Decorations } from './decorator';
 import type { ResolveFn } from '../analyzer/types';
 import { computeHighlights } from '../analyzer/compute';
+import { isExcludedFileName } from './exclude';
 
 const SUPPORTED = new Set(['typescript', 'typescriptreact']);
 
@@ -12,7 +13,9 @@ const SUPPORTED = new Set(['typescript', 'typescriptreact']);
  * - Merge duplicate ranges to avoid double drawing.
  */
 export function buildUpdateEditor(getDecorations: () => Decorations, resolveFn: ResolveFn) {
+  let seq = 0;
   return async function updateEditor(editor?: vscode.TextEditor): Promise<void> {
+    const runId = ++seq;
     if (!editor) {return;}
     const { document } = editor;
     const { body, call, icon } = getDecorations();
@@ -23,13 +26,25 @@ export function buildUpdateEditor(getDecorations: () => Decorations, resolveFn: 
       return;
     }
 
+    // Skip excluded files (e.g., Storybook/tests)
+    if (isExcludedFileName(document.fileName)) {
+      editor.setDecorations(body, []);
+      editor.setDecorations(call, []);
+      editor.setDecorations(icon, []);
+      return;
+    }
+
     const text = document.getText();
+    const visible = editor.visibleRanges[0];
+    const visibleRange = visible ? { start: document.offsetAt(visible.start), end: document.offsetAt(visible.end) } : undefined;
     const { bodyRanges, iconRanges, callRanges } = await computeHighlights(
       text,
       document.fileName,
       document.uri.toString(),
       resolveFn,
+      visibleRange ? { visibleRange, bounds: { maxConcurrent: 6, perPassBudgetMs: 2000, resolveTimeoutMs: 1500, maxResolutions: 30 } } : undefined,
     );
+    if (runId !== seq) { return; }
     editor.setDecorations(
       body,
       bodyRanges.map(r => new vscode.Range(document.positionAt(r.start), document.positionAt(r.end)))
