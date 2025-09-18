@@ -5,16 +5,6 @@ import type { ResolveFn, ComputeOptions } from './types';
 
 export type OffsetRange = { start: number; end: number };
 
-function lineStartOffset(text: string, at: number): number {
-  let i = at;
-  while (i > 0 && text[i - 1] !== '\n') {i--;}
-  return i;
-}
-function lineEndOffset(text: string, at: number): number {
-  const idx = text.indexOf('\n', at);
-  return idx === -1 ? text.length : idx;
-}
-
 /**
  * Given text and file name, compute offset ranges for definition and call-site highlights.
  * - Extraction: use core definitions/calls logic (AST-based).
@@ -69,11 +59,7 @@ export async function computeHighlights(
   const orderedCalls = vr ? [...inView, ...outView] : calls;
 
   // Safety bounds applied only when caller passed options
-  const bounds = options?.bounds;
-  const maxConcurrent = bounds?.maxConcurrent ?? 6;
-  const perPassBudgetMs = bounds?.perPassBudgetMs ?? 2000;
-  const resolveTimeoutMs = bounds?.resolveTimeoutMs ?? 1500;
-  const maxResolutions = bounds?.maxResolutions ?? 30;
+  const { maxConcurrent = 6, perPassBudgetMs = 2000, resolveTimeoutMs = 1500, maxResolutions = 30 } = options?.bounds ?? {};
   const useBounds = !!options;
 
   const startedAt = Date.now();
@@ -89,38 +75,58 @@ export async function computeHighlights(
     ]);
   };
 
+  // Admit a task into a small concurrency pool.
+  // - Limits concurrent resolve operations to avoid flooding the language server.
+  // - When bounds are disabled, runs the task inline for simplicity.
   const schedule = async (task: () => Promise<void>) => {
+    // Fast path: no bounds configured → execute immediately.
     if (!useBounds) { await task(); return; }
-    while (inFlight >= maxConcurrent) { // naive throttle
+
+    // Backpressure: if the pool is full, wait until any in-flight task finishes.
+    while (inFlight >= maxConcurrent) {
+      // Wait for whichever promise settles first to free a slot.
       // eslint-disable-next-line no-await-in-loop
       await Promise.race(queue);
     }
-    const p = (async () => { try { inFlight++; await task(); } finally { inFlight--; } })();
+
+    // Wrap the task to keep pool accounting correct.
+    const p = (async () => {
+      try {
+        inFlight++; // Occupy a slot.
+        await task();
+      } finally {
+        inFlight--; // Free the slot even if the task throws.
+      }
+    })();
+
+    // Track the promise so Promise.race can observe progress.
     queue.push(p);
+
+    // Remove the settled promise from the queue to avoid unbounded growth.
     p.finally(() => {
       const idx = queue.indexOf(p);
       if (idx >= 0) { queue.splice(idx, 1); }
     });
   };
 
-  for (const c of orderedCalls) {
-    const site: OffsetRange = { start: c.start, end: c.end };
-    if (c.kind === 'jsxAction' || c.kind === 'jsxFormAction') {
+  for (const orderedCall of orderedCalls) {
+    const site: OffsetRange = { start: orderedCall.start, end: orderedCall.end };
+    if (orderedCall.kind === 'jsxAction' || orderedCall.kind === 'jsxFormAction') {
       add(site);
       continue;
     }
     // Intra-file short-circuit: local server actions don't need LS
-    if (c.calleeName && localActionNames.has(c.calleeName)) {
+    if (orderedCall.calleeName && localActionNames.has(orderedCall.calleeName)) {
       add(site);
       continue;
     }
-    if (c.calleeName && !imported.has(c.calleeName) && !locals.has(c.calleeName)) {
+    if (orderedCall.calleeName && !imported.has(orderedCall.calleeName) && !locals.has(orderedCall.calleeName)) {
       // Allow property access off a namespace import: ns.fn()
-      if (!c.qualifierName || !nsImports.has(c.qualifierName)) {
+      if (!orderedCall.qualifierName || !nsImports.has(orderedCall.qualifierName)) {
         continue;
       }
     }
-    const inside = c.calleeName ? (c.start + Math.max(1, Math.floor(c.calleeName.length / 2))) : c.start;
+    const inside = orderedCall.calleeName ? (orderedCall.start + Math.max(1, Math.floor(orderedCall.calleeName.length / 2))) : orderedCall.start;
     // Pre-check bounds before scheduling to avoid enqueuing no-op tasks
     if (useBounds && (resolutions >= maxResolutions || Date.now() - startedAt > perPassBudgetMs)) {
       break;
@@ -141,4 +147,14 @@ export async function computeHighlights(
   for (const p of queue) { await p; }
 
   return { bodyRanges, iconRanges, callRanges };
+}
+
+function lineStartOffset(text: string, at: number): number {
+  let i = at;
+  while (i > 0 && text[i - 1] !== '\n') {i--;}
+  return i;
+}
+function lineEndOffset(text: string, at: number): number {
+  const idx = text.indexOf('\n', at);
+  return idx === -1 ? text.length : idx;
 }

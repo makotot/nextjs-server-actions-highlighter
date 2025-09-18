@@ -32,6 +32,49 @@ const cases: Case[] = [
     expectCall: 2,
   },
   {
+    title: 'module prologue + exported async function',
+    file: 'mod-prologue.tsx',
+    code: `
+      'use server';
+      export async function doIt() { return 1; }
+      export default function P(){
+        doIt();
+        return (<form action={doIt}><button>go</button></form>);
+      }
+    `,
+    expectBody: 1,
+    expectIcon: 1,
+    expectCall: 2,
+  },
+  {
+    title: "local const async arrow with 'use server' + direct call",
+    file: 'local-const.tsx',
+    code: `
+      export default function P(){
+        const run = async () => { 'use server'; return 1; };
+        run();
+        return null;
+      }
+    `,
+    expectBody: 1,
+    expectIcon: 1,
+    expectCall: 1,
+  },
+  {
+    title: 'optional chaining property call (obj?.run?.()) is not highlighted',
+    file: 'opt-chain.tsx',
+    code: `
+      export default function P(){
+        const obj: any = { run: () => {} };
+        obj?.run?.();
+        return null;
+      }
+    `,
+    expectBody: 0,
+    expectIcon: 0,
+    expectCall: 0,
+  },
+  {
     title: 'direct call through nested wrappers is detected',
     file: 'wrap.ts',
     code: `
