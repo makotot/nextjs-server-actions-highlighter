@@ -16,27 +16,31 @@ export function registerHighlighter(context: vscode.ExtensionContext) {
   const resolveFn = makeVsCodeResolveFn();
   const updateEditor = buildUpdateEditor(getDecorations, resolveFn);
 
-  const doUpdateActive = () => { void updateEditor(vscode.window.activeTextEditor); };
+  let timer: NodeJS.Timeout | undefined;
+  const scheduleUpdate = () => {
+    if (timer) { clearTimeout(timer); }
+    timer = setTimeout(() => { void updateEditor(vscode.window.activeTextEditor); }, 200);
+  };
 
   // Initial render
-  doUpdateActive();
+  scheduleUpdate();
 
   // Wire events
   context.subscriptions.push(
-    vscode.window.onDidChangeActiveTextEditor(() => doUpdateActive()),
+    vscode.window.onDidChangeActiveTextEditor(() => scheduleUpdate()),
     vscode.workspace.onDidChangeTextDocument(e => {
       const active = vscode.window.activeTextEditor;
-      if (active && e.document === active.document) {doUpdateActive();}
+      if (active && e.document === active.document) {scheduleUpdate();}
     }),
     vscode.workspace.onDidOpenTextDocument(doc => {
       const active = vscode.window.activeTextEditor;
-      if (active && doc === active.document) {doUpdateActive();}
+      if (active && doc === active.document) {scheduleUpdate();}
     }),
     vscode.window.onDidChangeActiveColorTheme(() => {
       disposeDecorations(decorations);
       decorations = createDecorations();
       context.subscriptions.push(decorations.body, decorations.call, decorations.icon);
-      doUpdateActive();
+      scheduleUpdate();
     }),
     vscode.workspace.onDidChangeConfiguration(e => {
       if (
@@ -46,7 +50,7 @@ export function registerHighlighter(context: vscode.ExtensionContext) {
         disposeDecorations(decorations);
         decorations = createDecorations();
         context.subscriptions.push(decorations.body, decorations.call, decorations.icon);
-        doUpdateActive();
+        scheduleUpdate();
       }
     })
   );

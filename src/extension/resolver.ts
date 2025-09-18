@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { scanServerActions } from '../core/definitions';
 import type { ResolveFn } from '../analyzer/types';
+import { isExcludedUri } from './exclude';
 
 /**
  * Create a ResolveFn backed by VS Code's TypeScript Language Service.
@@ -33,6 +34,8 @@ export function makeVsCodeResolveFn(): ResolveFn {
 
       for (const loc of all) {
         try {
+          // Skip excluded targets early
+          if (isExcludedUri(loc.uri)) { continue; }
           const targetDoc = await vscode.workspace.openTextDocument(loc.uri);
           const targetText = targetDoc.getText();
           const actions = scanServerActions(targetText, targetDoc.fileName);

@@ -39,6 +39,17 @@
     "configuration": {
       "title": "Next.js Server Actions Highlighter",
       "properties": {
+        "nextjs-server-actions-highlighter.files.exclude": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "\\.(stories|story)\\.[tj]sx?$",
+            "\\.(test|spec)\\.[tj]sx?$",
+            "/__tests__/",
+            "/\\.storybook/"
+          ],
+          "description": "Regex patterns for files to ignore (e.g., Storybook/tests). Applied to active editor and resolve targets."
+        },
         "nextjs-server-actions-highlighter.highlight.definition.tintLight": {
           "type": "string",
           "default": "rgba(138, 99, 255, 0.14)",
