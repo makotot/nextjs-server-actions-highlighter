@@ -142,9 +142,12 @@ export async function computeHighlights(
       break;
     }
   }
-  // Drain remaining scheduled tasks
-  // eslint-disable-next-line no-await-in-loop
-  for (const p of queue) { await p; }
+  // Drain remaining scheduled tasks.
+  // Take a snapshot: each promise removes itself from `queue` in its `finally`
+  // handler above. Iterating the live array can skip entries. A copy ensures
+  // we await every scheduled task before returning.
+  const pending = [...queue];
+  await Promise.all(pending);
 
   return { bodyRanges, iconRanges, callRanges };
 }
