@@ -2,7 +2,7 @@
   "name": "nextjs-server-actions-highlighter",
   "displayName": "Next.js Server Actions Highlighter",
   "description": "Visualize Next.js Server Actions in VS Code: highlight definitions and call sites with inline cues.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "MIT",
   "publisher": "makotot",
   "repository": {
@@ -41,7 +41,9 @@
       "properties": {
         "nextjs-server-actions-highlighter.files.exclude": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [
             "\\.(stories|story)\\.[tj]sx?$",
             "\\.(test|spec)\\.[tj]sx?$",
