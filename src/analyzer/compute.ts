@@ -164,9 +164,11 @@ export async function computeHighlights(
     }
   }
   // Drain remaining scheduled tasks.
-  // If aborted, skip draining to return early — already-started tasks will
-  // finish quickly due to timeouts, and we avoid keeping the user waiting.
-  if (!signal?.aborted) {
+  // If aborted, do not block on outstanding tasks — but attach a catch handler
+  // so late rejections don't surface as unhandled promise rejections.
+  if (signal?.aborted) {
+    for (const p of queue) { void p.catch(() => {}); }
+  } else {
     // Take a snapshot: each promise removes itself from `queue` in its `finally`
     // handler above. Iterating the live array can skip entries. A copy ensures
     // we await every scheduled task before returning.
