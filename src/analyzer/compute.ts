@@ -1,7 +1,7 @@
 /** Highlight computation logic independent of VS Code. */
 import { scanServerActions } from '../core/definitions';
 import { scanCallSiteCandidates, collectImportedNames, collectLocalCallableNames, collectNamespaceImportNames } from '../core/calls';
-import type { ResolveFn, ComputeOptions } from './types';
+import type { ResolveFn, RuntimeControls } from './types';
 
 export type OffsetRange = { start: number; end: number };
 
@@ -16,7 +16,7 @@ export async function computeHighlights(
   fileName: string,
   documentUri: string,
   resolveFn: ResolveFn,
-  options?: ComputeOptions,
+  controls?: RuntimeControls,
 ): Promise<{ bodyRanges: OffsetRange[]; iconRanges: OffsetRange[]; callRanges: OffsetRange[] }> {
   const spans = scanServerActions(text, fileName);
   const bodyRanges: OffsetRange[] = [];
@@ -48,7 +48,7 @@ export async function computeHighlights(
   };
 
   // Order call candidates: visible range first (if provided)
-  const vr = options?.visibleRange;
+  const vr = controls?.visibleRange;
   const inView: typeof calls = [];
   const outView: typeof calls = [];
   if (vr) {
@@ -59,8 +59,15 @@ export async function computeHighlights(
   const orderedCalls = vr ? [...inView, ...outView] : calls;
 
   // Safety bounds applied only when caller passed options
-  const { maxConcurrent = 6, perPassBudgetMs = 2000, resolveTimeoutMs = 1500, maxResolutions = 30 } = options?.bounds ?? {};
-  const useBounds = !!options;
+  const {
+    maxConcurrent = 6,
+    perPassBudgetMs = 2000,
+    resolveTimeoutMs = 1500,
+    maxResolutions = 30
+  } = controls?.bounds ?? {};
+
+  const useBounds = !!controls;
+  const signal = controls?.signal;
 
   const startedAt = Date.now();
   let resolutions = 0;
@@ -68,10 +75,19 @@ export async function computeHighlights(
   const queue: Promise<void>[] = [];
 
   const runWithTimeout = async (uri: string, off: number): Promise<boolean> => {
-    if (!useBounds) { return resolveFn(uri, off); }
+    if (!useBounds && !signal) { return resolveFn(uri, off); }
     return await Promise.race([
       resolveFn(uri, off),
       new Promise<boolean>(res => setTimeout(() => res(false), resolveTimeoutMs)),
+      new Promise<boolean>(res => {
+        if (signal) {
+          if (signal.aborted) {
+            res(false);
+          } else {
+            signal.addEventListener('abort', () => res(false), { once: true });
+          }
+        }
+      }),
     ]);
   };
 
@@ -80,13 +96,17 @@ export async function computeHighlights(
   // - When bounds are disabled, runs the task inline for simplicity.
   const schedule = async (task: () => Promise<void>) => {
     // Fast path: no bounds configured → execute immediately.
-    if (!useBounds) { await task(); return; }
+    if (!useBounds && !signal) { await task(); return; }
+
+    // If aborted, do not admit new tasks.
+    if (signal?.aborted) { return; }
 
     // Backpressure: if the pool is full, wait until any in-flight task finishes.
     while (inFlight >= maxConcurrent) {
       // Wait for whichever promise settles first to free a slot.
       // eslint-disable-next-line no-await-in-loop
       await Promise.race(queue);
+      if (signal?.aborted) { return; }
     }
 
     // Wrap the task to keep pool accounting correct.
@@ -110,6 +130,7 @@ export async function computeHighlights(
   };
 
   for (const orderedCall of orderedCalls) {
+    if (signal?.aborted) { break; }
     const site: OffsetRange = { start: orderedCall.start, end: orderedCall.end };
     if (orderedCall.kind === 'jsxAction' || orderedCall.kind === 'jsxFormAction') {
       add(site);
@@ -128,7 +149,7 @@ export async function computeHighlights(
     }
     const inside = orderedCall.calleeName ? (orderedCall.start + Math.max(1, Math.floor(orderedCall.calleeName.length / 2))) : orderedCall.start;
     // Pre-check bounds before scheduling to avoid enqueuing no-op tasks
-    if (useBounds && (resolutions >= maxResolutions || Date.now() - startedAt > perPassBudgetMs)) {
+    if (useBounds && (resolutions >= maxResolutions || Date.now() - startedAt > perPassBudgetMs || signal?.aborted)) {
       break;
     }
     const resolveCallCandidate = async () => {
@@ -138,16 +159,22 @@ export async function computeHighlights(
     };
     // eslint-disable-next-line no-await-in-loop
     await schedule(resolveCallCandidate);
-    if (useBounds && (resolutions >= maxResolutions || Date.now() - startedAt > perPassBudgetMs)) {
+    if (useBounds && (resolutions >= maxResolutions || Date.now() - startedAt > perPassBudgetMs || signal?.aborted)) {
       break;
     }
   }
   // Drain remaining scheduled tasks.
-  // Take a snapshot: each promise removes itself from `queue` in its `finally`
-  // handler above. Iterating the live array can skip entries. A copy ensures
-  // we await every scheduled task before returning.
-  const pending = [...queue];
-  await Promise.all(pending);
+  // If aborted, do not block on outstanding tasks — but attach a catch handler
+  // so late rejections don't surface as unhandled promise rejections.
+  if (signal?.aborted) {
+    for (const p of queue) { void p.catch(() => {}); }
+  } else {
+    // Take a snapshot: each promise removes itself from `queue` in its `finally`
+    // handler above. Iterating the live array can skip entries. A copy ensures
+    // we await every scheduled task before returning.
+    const pending = [...queue];
+    await Promise.all(pending);
+  }
 
   return { bodyRanges, iconRanges, callRanges };
 }
