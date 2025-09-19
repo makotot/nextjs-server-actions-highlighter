@@ -1,6 +1,6 @@
 export type ResolveFn = (uri: string, offset: number) => Promise<boolean>;
 
-export type ComputeOptions = {
+export type RuntimeControls = {
   // Resolve only within this visible range first, then optionally a few outside.
   visibleRange?: { start: number; end: number };
   // Internal safety bounds (applied if provided by caller). If omitted, behaves like legacy (no limits).
@@ -10,4 +10,7 @@ export type ComputeOptions = {
     resolveTimeoutMs?: number; // default 1500
     maxResolutions?: number; // default 30
   };
+  // Standard cancellation signal for cooperative cancellation across layers.
+  // When aborted, compute avoids starting new work and returns promptly.
+  signal?: AbortSignal;
 };

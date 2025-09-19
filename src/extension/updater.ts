@@ -14,8 +14,12 @@ const SUPPORTED = new Set(['typescript', 'typescriptreact']);
  */
 export function buildUpdateEditor(getDecorations: () => Decorations, resolveFn: ResolveFn) {
   let seq = 0;
+  let currentAbort: AbortController | undefined;
   return async function updateEditor(editor?: vscode.TextEditor): Promise<void> {
     const runId = ++seq;
+    // Abort previous run (if any) and create a fresh controller for this run.
+    try { currentAbort?.abort(); } catch { /* noop */ }
+    currentAbort = new AbortController();
     if (!editor) {return;}
     const { document } = editor;
     const { body, call, icon } = getDecorations();
@@ -42,7 +46,7 @@ export function buildUpdateEditor(getDecorations: () => Decorations, resolveFn: 
       document.fileName,
       document.uri.toString(),
       resolveFn,
-      visibleRange ? { visibleRange, bounds: { maxConcurrent: 6, perPassBudgetMs: 2000, resolveTimeoutMs: 1500, maxResolutions: 30 } } : undefined,
+      visibleRange ? { visibleRange, bounds: { maxConcurrent: 6, perPassBudgetMs: 2000, resolveTimeoutMs: 1500, maxResolutions: 30 }, signal: currentAbort.signal } : { signal: currentAbort.signal },
     );
     if (runId !== seq) { return; }
     editor.setDecorations(
