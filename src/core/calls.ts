@@ -129,7 +129,7 @@ export function scanCallSiteCandidates(sourceText: string, fileName = 'file.tsx'
             }
             ts.forEachChild(n, visit);
           };
-          ts.forEachChild(arg.body, visit);
+          visit(arg.body);
         }
       }
 

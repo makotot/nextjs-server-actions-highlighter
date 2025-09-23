@@ -255,6 +255,40 @@ const cases: Case[] = [
     expectIcon: 0,
     expectCall: 2,
   },
+  {
+    title: 'useTransition startTransition callback highlights actions',
+    file: 'use-transition.tsx',
+    code: `
+      import { useTransition } from 'react';
+      import { doThing } from './actions';
+      export default function Comp(){
+        const [isPending, startTransition] = useTransition();
+        startTransition(() => doThing('z'));
+        return <span>{String(isPending)}</span>;
+      }
+    `,
+    expectBody: 0,
+    expectIcon: 0,
+    expectCall: 1,
+  },
+  {
+    title: 'useTransition async startTransition callback highlights actions',
+    file: 'use-transition-async.tsx',
+    code: `
+      import { useTransition } from 'react';
+      import { doThing } from './actions';
+      export default function Comp(){
+        const [isPending, startTransition] = useTransition();
+        startTransition(async () => {
+          await doThing('z');
+        });
+        return <span>{String(isPending)}</span>;
+      }
+    `,
+    expectBody: 0,
+    expectIcon: 0,
+    expectCall: 1,
+  },
 ];
 
 describe('highlight/computeHighlights (parameterized)', () => {
