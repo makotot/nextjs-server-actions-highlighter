@@ -129,11 +129,32 @@ export async function computeHighlights(
     });
   };
 
+  // Built-in non-action callees to exclude at the top-level call-site.
+  // Keep this conservative: core React hooks and Next.js client navigation only.
+  const BUILTIN_IGNORED_CALLEES = new Set<string>([
+    // React core hooks
+    'useEffect', 'useLayoutEffect', 'useInsertionEffect', 'useMemo', 'useCallback',
+    'useState', 'useReducer', 'useRef', 'useId', 'useSyncExternalStore', 'useDeferredValue',
+    // Transitions / optimistic UI helpers
+    'startTransition', 'useTransition', 'useOptimistic',
+    // Next.js navigation (client)
+    'useRouter', 'usePathname', 'useSearchParams',
+  ]);
+  // Merge with user-provided ignores from the extension layer.
+  const IGNORED_CALLEES = new Set<string>([
+    ...BUILTIN_IGNORED_CALLEES,
+    ...(controls?.ignoreCallees ?? []),
+  ]);
+
   for (const orderedCall of orderedCalls) {
     if (signal?.aborted) { break; }
     const site: OffsetRange = { start: orderedCall.start, end: orderedCall.end };
     if (orderedCall.kind === 'jsxAction' || orderedCall.kind === 'jsxFormAction') {
       add(site);
+      continue;
+    }
+    // Skip known non-action callees even if imported/local (e.g., React hooks/wrappers)
+    if (orderedCall.calleeName && IGNORED_CALLEES.has(orderedCall.calleeName)) {
       continue;
     }
     // Intra-file short-circuit: local server actions don't need LS

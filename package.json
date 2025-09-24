@@ -35,15 +35,23 @@
     "onLanguage:typescriptreact"
   ],
   "main": "./dist/extension.js",
-  "contributes": {
-    "configuration": {
-      "title": "Next.js Server Actions Highlighter",
-      "properties": {
-        "nextjs-server-actions-highlighter.files.exclude": {
-          "type": "array",
-          "items": {
-            "type": "string"
+    "contributes": {
+      "configuration": {
+        "title": "Next.js Server Actions Highlighter",
+        "properties": {
+          "nextjs-server-actions-highlighter.calls.ignoreCallees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Callee names to ignore for call-site highlighting (e.g., ['useFormStatus','useSWR','clsx'])."
           },
+          "nextjs-server-actions-highlighter.files.exclude": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
           "default": [
             "\\.(stories|story)\\.[tj]sx?$",
             "\\.(test|spec)\\.[tj]sx?$",

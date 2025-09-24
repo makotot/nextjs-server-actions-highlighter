@@ -13,4 +13,7 @@ export type RuntimeControls = {
   // Standard cancellation signal for cooperative cancellation across layers.
   // When aborted, compute avoids starting new work and returns promptly.
   signal?: AbortSignal;
+  // Additional callee names to ignore for call-site highlighting.
+  // Provided by the VS Code layer via configuration.
+  ignoreCallees?: string[];
 };

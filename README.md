@@ -1,4 +1,4 @@
-# Next.js Server Actions Highlighter (VS Code Extension)
+# Next.js Server Actions Highlighter
 
 > A VS Code extension that visualizes the “definitions” and “call sites” of Server Actions (`'use server'`) to help you understand them quickly in the editor.
 

@@ -41,12 +41,17 @@ export function buildUpdateEditor(getDecorations: () => Decorations, resolveFn: 
     const text = document.getText();
     const visible = editor.visibleRanges[0];
     const visibleRange = visible ? { start: document.offsetAt(visible.start), end: document.offsetAt(visible.end) } : undefined;
+    const cfg = vscode.workspace.getConfiguration('nextjs-server-actions-highlighter');
+    // Support both the new key and the previous one for compatibility.
+    const ignoreCallees = cfg.get<string[]>('calls.ignoreCallees') ?? [];
     const { bodyRanges, iconRanges, callRanges } = await computeHighlights(
       text,
       document.fileName,
       document.uri.toString(),
       resolveFn,
-      visibleRange ? { visibleRange, bounds: { maxConcurrent: 6, perPassBudgetMs: 2000, resolveTimeoutMs: 1500, maxResolutions: 30 }, signal: currentAbort.signal } : { signal: currentAbort.signal },
+      visibleRange
+        ? { visibleRange, bounds: { maxConcurrent: 6, perPassBudgetMs: 2000, resolveTimeoutMs: 1500, maxResolutions: 30 }, signal: currentAbort.signal, ignoreCallees }
+        : { signal: currentAbort.signal, ignoreCallees },
     );
     if (runId !== seq) { return; }
     editor.setDecorations(

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { computeHighlights } from '../../analyzer/compute';
+import type { RuntimeControls } from '../../analyzer/types';
 
 async function alwaysResolve(): Promise<boolean> { return true; }
 
@@ -10,6 +11,7 @@ type Case = {
   expectBody: number;
   expectIcon: number;
   expectCall: number;
+  controls?: RuntimeControls;
 };
 
 const cases: Case[] = [
@@ -30,6 +32,27 @@ const cases: Case[] = [
     expectBody: 1,
     expectIcon: 1,
     expectCall: 2,
+  },
+  {
+    title: 'top-level helpers are ignored (useEffect/useOptimistic/useRouter)',
+    file: 'helpers.tsx',
+    code: `
+      import { useEffect } from 'react';
+      import { useOptimistic } from 'react';
+      import { useRouter } from 'next/navigation';
+      import { doThing } from './actions';
+      export default function Comp(){
+        useEffect(() => { doThing('x'); });
+        const [s, setS] = useOptimistic(0 as number, (s, _d) => s);
+        const r = useRouter();
+        r.push('/');
+        return null;
+      }
+    `,
+    expectBody: 0,
+    expectIcon: 0,
+    // Only the inner doThing call should be considered (helpers themselves ignored)
+    expectCall: 1,
   },
   {
     title: 'module prologue + exported async function',
@@ -289,11 +312,41 @@ const cases: Case[] = [
     expectIcon: 0,
     expectCall: 1,
   },
+  {
+    title: 'ignoreCallees excludes imported call',
+    file: 'ignore-import.tsx',
+    code: `
+      import { doThing } from './actions';
+      export default function C(){
+        doThing('x');
+        return null;
+      }
+    `,
+    expectBody: 0,
+    expectIcon: 0,
+    expectCall: 0,
+    controls: { ignoreCallees: ['doThing'] },
+  },
+  {
+    title: 'ignoreCallees excludes local callable call',
+    file: 'ignore-local.tsx',
+    code: `
+      export default function P(){
+        async function doThing(){ 'use server'; return 1; }
+        doThing();
+        return null;
+      }
+    `,
+    expectBody: 1,
+    expectIcon: 1,
+    expectCall: 0,
+    controls: { ignoreCallees: ['doThing'] },
+  },
 ];
 
 describe('highlight/computeHighlights (parameterized)', () => {
-  it.each(cases)('$title', async ({ code, file, expectBody, expectIcon, expectCall }) => {
-    const res = await computeHighlights(code, file, `file:///${file}`, alwaysResolve);
+  it.each(cases)('$title', async ({ code, file, expectBody, expectIcon, expectCall, controls }) => {
+    const res = await computeHighlights(code, file, `file:///${file}`, alwaysResolve, controls);
     expect(res.bodyRanges.length).toBe(expectBody);
     expect(res.iconRanges.length).toBe(expectIcon);
     expect(res.callRanges.length).toBe(expectCall);

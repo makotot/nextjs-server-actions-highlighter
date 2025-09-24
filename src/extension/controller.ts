@@ -45,7 +45,8 @@ export function registerHighlighter(context: vscode.ExtensionContext) {
     vscode.workspace.onDidChangeConfiguration(e => {
       if (
         e.affectsConfiguration('nextjs-server-actions-highlighter.highlight.definition') ||
-        e.affectsConfiguration('nextjs-server-actions-highlighter.highlight.call')
+        e.affectsConfiguration('nextjs-server-actions-highlighter.highlight.call') ||
+        e.affectsConfiguration('nextjs-server-actions-highlighter.calls.ignoreCallees')
       ) {
         disposeDecorations(decorations);
         decorations = createDecorations();

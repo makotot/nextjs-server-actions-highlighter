@@ -32,7 +32,9 @@ export function scanCallSiteCandidates(sourceText: string, fileName = 'file.tsx'
   const spanOf = (n: ts.Node) => ({ start: n.getStart(sf), end: n.getEnd() });
   const seen = new Set<string>();
   const push = (c: CallSiteSpan) => {
-    const key = `${c.kind}:${c.start}:${c.end}`;
+    // Deduplicate by span only to avoid double-counting the same call
+    // discovered via multiple paths (e.g., directCall vs startTransition).
+    const key = `${c.start}:${c.end}`;
     if (seen.has(key)) {return;}
     seen.add(key);
     calls.push(c);
