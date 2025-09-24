@@ -2,7 +2,7 @@
   "name": "nextjs-server-actions-highlighter",
   "displayName": "Next.js Server Actions Highlighter",
   "description": "Visualize Next.js Server Actions in VS Code: highlight definitions and call sites with inline cues.",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "MIT",
   "publisher": "makotot",
   "repository": {
@@ -35,23 +35,23 @@
     "onLanguage:typescriptreact"
   ],
   "main": "./dist/extension.js",
-    "contributes": {
-      "configuration": {
-        "title": "Next.js Server Actions Highlighter",
-        "properties": {
-          "nextjs-server-actions-highlighter.calls.ignoreCallees": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "default": [],
-            "description": "Callee names to ignore for call-site highlighting (e.g., ['useFormStatus','useSWR','clsx'])."
+  "contributes": {
+    "configuration": {
+      "title": "Next.js Server Actions Highlighter",
+      "properties": {
+        "nextjs-server-actions-highlighter.calls.ignoreCallees": {
+          "type": "array",
+          "items": {
+            "type": "string"
           },
-          "nextjs-server-actions-highlighter.files.exclude": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
+          "default": [],
+          "description": "Callee names to ignore for call-site highlighting (e.g., ['useFormStatus','useSWR','clsx'])."
+        },
+        "nextjs-server-actions-highlighter.files.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
           "default": [
             "\\.(stories|story)\\.[tj]sx?$",
             "\\.(test|spec)\\.[tj]sx?$",
